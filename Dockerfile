@@ -18,17 +18,23 @@ RUN apt-get clean &&\
     apt-get -y -q autoremove &&\
     rm -rf /tmp/*
 
-RUN apt-get install -y wget
-
-RUN wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 &&\
+# Install dumb-init
+# We need to install wget to fetch the file (curl needs more space that wget)
+RUN apt-get install -y wget &&\
+    wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 &&\
     chmod +x /usr/local/bin/dumb-init
 
-ADD bin/start-pritunl.sh /usr/bin/start-pritunl.sh
+# Copy the init script from the local repository to the docker image
+COPY bin/start-pritunl.sh /usr/bin/start-pritunl.sh
 
+# Expose pritunl ports; 1194 (udp) for VPN traffic, 443 for admin interface
 EXPOSE 1194
 EXPOSE 443
 EXPOSE 80
 
+# Set the dumb-init as the entrypoint for the container
+# and pass the start-pritunl script as the argument
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--", "/usr/bin/start-pritunl.sh"]
 
+# Send pritunl logs to stdout
 CMD ["/usr/bin/tail", "-f", "/var/log/pritunl.log"]
